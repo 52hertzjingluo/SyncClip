@@ -2,7 +2,6 @@
 @brief: 解说视频重组 v2.0
 @authors: Huang YanZhe (Author)
 @version: 2.0
-@date: 2025-07-24
 
 @features :
     - 完整集成 ChatterboxTTS 模块。当检测到解说视频时，使用意译后的文稿，并严格按照原始时间戳生成全新的TTS配音音轨。
