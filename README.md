@@ -1,37 +1,46 @@
-# 智能视频高光片段检测系统
+# SyncClip
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=flat&logo=PyTorch&logoColor=white)](https://pytorch.org)
+[![Transformers](https://img.shields.io/badge/Transformers-4.20%2B-orange.svg)](https://huggingface.co/transformers)
+[![Gradio](https://img.shields.io/badge/Gradio-UI-green.svg)](https://gradio.app)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-一个基于深度学习的智能视频高潮片段检测和提取系统，结合视觉理解、音频分析和场景检测技术，自动识别视频中的精彩时刻。
+一个基于深度学习的工具，用于将 YouTube 解说视频与电影原片进行视觉匹配、片段提取和同步剪辑。结合 CLIP 模型的语义匹配、BLIP 模型的场景描述、Whisper 的音频转录，以及高级优化如核密度估计和时间跳跃处理，实现自动生成同步的高光剪辑视频。
 
-**作者**: 黄彦喆
+**作者**: 52hertzjingluo
 
 ## ✨ 核心特性
 
-### 多模态AI分析
-- **BLIP视觉理解**: 使用Salesforce BLIP模型生成视频帧的详细描述
-- **CLIP语义匹配**: 通过OpenAI CLIP模型识别视频中的戏剧性场景
-- **音频能量分析**: 提取RMS能量特征识别音频高潮
+### 多模态匹配与分析
+- **CLIP 视觉特征匹配**: 使用 OpenAI CLIP 模型计算帧间语义相似度，支持高精度匹配。
+- **BLIP 场景描述生成**: 通过 Salesforce BLIP 模型为关键帧生成详细文本描述，提升匹配准确性。
+- **Whisper 音频转录**: 提取解说音频并转录文本，支持多种模型大小（tiny, base, small, medium, large），用于辅助匹配和报告生成。
+- **核密度估计优化**: 使用 SciPy 的 gaussian_kde 进行片段匹配平滑处理，提高连续性。
 
-### 智能场景检测
-- **自动场景分割**: 基于视觉变化检测场景切换点
-- **无效场景过滤**: 智能识别并过滤黑屏、白屏、模糊等无效内容
-- **场景内容分类**: 自动分类动作、对话、风景等不同类型场景
+### 智能视频处理
+- **竖屏视频自动裁剪**: 检测视频方向（横屏/竖屏/方形），自动去除黑边并裁剪内容区域，支持自定义采样帧数。
+- **时间跳跃智能处理**: 允许非线性匹配，处理电影中的闪回或跳跃场景，支持自适应阈值调整。
+- **特征缓存与断点续传**: 使用 MD5 哈希和 pickle/numpy 缓存提取的特征，避免重复计算。
+- **自适应时长调整**: 自动分组匹配片段，确保输出片段时长与 YouTube 视频严格同步，无速度调整。
 
-### 高级功能
-- **自适应权重调整**: 根据场景类型动态调整重要性权重
-- **时间精确控制**: 支持指定时间段分析和输出时长限制
-- **GPU加速优化**: 支持CUDA、MPS等多种硬件加速
-- **详细日志记录**: 完整的处理过程记录和调试信息
+### 用户界面与输出
+- **Gradio Web 界面**: 通过 `FCR_G.py` 提供交互式 UI，支持文件上传、参数调整和实时进度显示。
+- **无缝视频合并**: 使用 FFmpeg 合并剪辑片段，支持高质量 H.264 编码和过渡效果。
+- **详细报告生成**: 输出 JSON 匹配结果、TXT 质量报告、场景描述和候选片段信息。
+- **资源管理**: 自动清理临时文件，支持 GPU/CPU 自动切换。
+
+### 高级优化
+- **相似度阈值自适应**: 自动重试降低阈值（最多 3 次），确保匹配质量置信度 >50%。
+- **批量处理支持**: 支持并行提取帧和特征，优化内存使用。
+- **质量评估**: 计算匹配置信度、时间跳跃统计和覆盖率，提供改进建议。
 
 ## 🛠️ 环境要求
 
 ### 系统要求
-- **操作系统**: Linux / macOS / Windows
+- **操作系统**: Linux / macOS / Windows（推荐 Linux/macOS 以获得最佳性能）
 - **Python版本**: 3.8+
-- **硬件**: 推荐使用GPU（CUDA/MPS）以获得最佳性能
+- **硬件**: 推荐 NVIDIA GPU（CUDA 11+）以加速模型推理；至少 8GB RAM；如果无 GPU，可 fallback 到 CPU，但速度较慢。
 
 ### 核心依赖
 ```txt
@@ -39,39 +48,43 @@ torch>=1.9.0
 torchvision>=0.10.0
 transformers>=4.20.0
 opencv-python>=4.5.0
-librosa>=0.9.0
-Pillow>=8.0.0
+whisper (OpenAI Whisper)
+gradio>=3.0.0 (仅用于 Gradio 界面)
 numpy>=1.21.0
+scipy>=1.7.0
+Pillow>=8.0.0
+yt-dlp (可选，用于在线下载 YouTube 视频)
 ```
 
 ### 外部工具
-- **FFmpeg**: 用于视频/音频处理（必需）
+- **FFmpeg**: 用于视频裁剪、音频提取和合并（必需）。
+- **CUDA Toolkit** (可选): 如果使用 GPU，确保安装匹配的 CUDA 版本。
 
 ## 📦 安装指南
 
 ### 1. 克隆项目
 ```bash
 git clone <repository-url>
-cd video-highlight-detection
+cd youtube-movie-matcher
 ```
 
 ### 2. 创建虚拟环境
 ```bash
-# 使用conda
-conda create -n highlight python=3.9
-conda activate highlight
+# 使用conda (推荐)
+conda create -n matcher python=3.9
+conda activate matcher
 
 # 或使用venv
-python -m venv highlight
-source highlight/bin/activate  # Linux/macOS
-# highlight\Scripts\activate  # Windows
+python -m venv matcher
+source matcher/bin/activate  # Linux/macOS
+# matcher\Scripts\activate  # Windows
 ```
 
 ### 3. 安装Python依赖
 ```bash
-# 基础安装
+# 基础安装 (GPU版本)
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-pip install transformers opencv-python librosa Pillow numpy
+pip install transformers opencv-python numpy scipy Pillow gradio openai-whisper yt-dlp
 
 # 或使用requirements.txt（如果有）
 pip install -r requirements.txt
@@ -86,323 +99,272 @@ sudo apt update && sudo apt install ffmpeg
 brew install ffmpeg
 
 # Windows
-# 下载FFmpeg并添加到PATH环境变量
+# 下载FFmpeg可执行文件并添加到PATH环境变量（从 https://ffmpeg.org/download.html）
 ```
 
 ### 5. 验证安装
 ```bash
-python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
 python -c "import cv2; print(f'OpenCV: {cv2.__version__}')"
 ffmpeg -version
+whisper --model base --help  # 测试Whisper
+```
+
+如果出现模型下载失败，可设置 Hugging Face 镜像：
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
 ```
 
 ## 🚀 快速开始
 
-### 基础使用
+### 命令行使用 (`Film_commentary_reorganized.py`)
 ```python
-from highlight_detection import main
+from Film_commentary_reorganized import main  # 假设main函数已定义
 
 # 基本用法
 main(
-    video_path="input_video.mp4",
-    output_path="highlights.mp4"
+    youtube_url="https://www.youtube.com/watch?v=example",  # 或本地路径
+    movie_path="path/to/movie.mp4",
+    output_dir="path/to/output",
+    frame_interval=1.2,  # 帧间隔（秒）
+    similarity_threshold=0.80,  # 相似度阈值
+    whisper_model="base",  # Whisper模型
+    allow_time_jumps=True  # 允许时间跳跃
 )
 ```
 
-### 高级配置
-```python
-main(
-    video_path="movie.mp4",
-    output_path="movie_highlights.mp4",
-    start_time=60,                    # 从60秒开始分析
-    end_time=3600,                   # 到3600秒结束
-    speed=1.2,                       # 1.2倍速输出
-    max_output_duration=300,         # 最大输出5分钟
-    enable_scene_analysis=True,      # 启用场景分析
-    scene_analysis_output="scenes.json"  # 保存场景分析结果
-)
+### Gradio 界面使用 (`FCR_G.py`)
+运行脚本启动 Web 界面：
+```bash
+python FCR_G.py
 ```
+- 访问 http://localhost:7866
+- 上传 YouTube 解说视频和电影文件。
+- 输入输出目录（所有文件将保存到 `<output_dir>/proceed`）。
+- 调整参数并点击“开始处理”。
+
+输出将包括最终视频、匹配报告和质量报告。
 
 ## 📚 API文档
 
-### 主函数 `main()`
-
+### 主类 `YouTubeMovieMatcher`
 ```python
-def main(video_path, output_path, temp_audio_path="temp_audio.wav", 
-         start_time=None, end_time=None, speed=1.0, max_output_duration=None, 
-         enable_scene_analysis=True, scene_analysis_output=None):
+class YouTubeMovieMatcher:
+    def __init__(self, output_dir: str, log_level: str = "INFO"):
+        # 初始化输出目录、日志、设备等
 ```
 
-#### 参数说明
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `video_path` | str | ✅ | 输入视频文件路径 |
-| `output_path` | str | ✅ | 输出高潮片段视频路径 |
-| `temp_audio_path` | str | ❌ | 临时音频文件路径（默认：temp_audio.wav） |
-| `start_time` | float | ❌ | 分析起始时间（秒） |
-| `end_time` | float | ❌ | 分析结束时间（秒） |
-| `speed` | float | ❌ | 输出视频速度倍率（默认：1.0） |
-| `max_output_duration` | int | ❌ | 最大输出时长（秒） |
-| `enable_scene_analysis` | bool | ❌ | 是否启用场景分析（默认：True） |
-| `scene_analysis_output` | str | ❌ | 场景分析结果保存路径 |
-
-### 核心功能函数
-
-#### 场景检测
+#### 核心方法
 ```python
-def detect_scene_changes(video_path, threshold=30.0, min_scene_len=15, 
-                        filter_invalid=True, logger=None):
+def process_visual_matching_enhanced(
+    self, youtube_url: str, movie_path: str,
+    frame_interval: float = 1.0, similarity_threshold: float = 0.85,
+    whisper_model: str = "base", allow_time_jumps: bool = True,
+    use_cache: bool = True
+) -> Optional[Dict]:
     """
-    检测视频场景变化
-    
+    完整处理流程：下载/加载视频、预处理、提取帧/特征、匹配、生成片段和视频。
+
     参数:
-        threshold: 场景切换阈值（0-100）
-        min_scene_len: 最小场景长度（帧数）
-        filter_invalid: 是否过滤无效场景
-    
+        youtube_url: YouTube URL 或本地路径 (str)
+        movie_path: 电影文件路径 (str)
+        frame_interval: 帧提取间隔 (float, 默认1.0秒)
+        similarity_threshold: 相似度阈值 (float, 默认0.85)
+        whisper_model: Whisper模型大小 (str, 默认"base")
+        allow_time_jumps: 是否允许时间跳跃 (bool, 默认True)
+        use_cache: 是否使用特征缓存 (bool, 默认True)
+
     返回:
-        List[Dict]: 场景信息列表
+        Dict: 处理结果，包括状态、输出路径、质量信息等
     """
 ```
 
-#### 视频内容分析
-```python
-def analyze_video_content(key_frames, device=None, logger=None):
-    """
-    使用BLIP模型分析视频内容
-    
-    参数:
-        key_frames: 关键帧列表
-        device: 计算设备
-    
-    返回:
-        Dict: 场景描述字典
-    """
-```
+#### 辅助方法（示例）
+- `load_models()`: 加载 CLIP 和 BLIP 模型。
+- `detect_video_orientation(video_path: str) -> Dict`: 检测视频方向和内容区域。
+- `extract_frames_with_timestamps(video_path: str, interval: float) -> List[Dict]`: 提取带时间戳的帧。
+- `match_frames_combined(...) -> Tuple[List[Dict], List[Dict]]`: 进行 CLIP+BLIP 匹配，返回主/备匹配。
+- `group_matches_into_segments_flexible(matches: List[Dict]) -> List[Dict]`: 分组匹配为片段。
+- `create_synchronized_clips_precise(...) -> List[str]`: 生成精确同步剪辑。
+- `merge_clips_seamless(clips: List[str], output_video: str) -> bool`: 无缝合并剪辑。
 
-#### 高潮检测
-```python
-def detect_highlights(video_scores, audio_scores, total_frames, fps, 
-                     segment_duration=5, video_weight=0.5, audio_weight=0.5, 
-                     max_output_duration=None, logger=None):
-    """
-    检测高潮片段
-    
-    参数:
-        video_scores: 视频特征分数
-        audio_scores: 音频特征分数
-        video_weight: 视频权重（0-1）
-        audio_weight: 音频权重（0-1）
-    
-    返回:
-        List[Tuple]: 高潮时间段列表 [(start, end), ...]
-    """
-```
+更多方法详见代码文件。
 
 ## ⚙️ 配置选项
 
-### 场景检测参数
+### 匹配参数
 ```python
-# 场景切换敏感度调整
-detect_scene_changes(
-    threshold=30.0,      # 数值越小越敏感（10-50）
-    min_scene_len=15,    # 最小场景长度（帧）
-    filter_invalid=True  # 过滤黑屏等无效场景
-)
-```
-
-### 高潮检测权重
-```python
-# 调整视频/音频权重比例
-detect_highlights(
-    video_weight=0.7,    # 更依重视频内容
-    audio_weight=0.3,    # 减少音频影响
-    segment_duration=5   # 分析片段长度（秒）
-)
+# 在process_visual_matching_enhanced中调整
+frame_interval=1.0      # 越小越精确，但计算量越大
+similarity_threshold=0.85  # 0.7-0.9 范围，较低时匹配更多但质量可能下降
+whisper_model="medium"  # 更大模型转录更准，但更慢
+allow_time_jumps=False  # 禁用以强制线性匹配
 ```
 
 ### 设备优化
 ```python
-# 系统会自动检测最佳设备，也可手动指定
-device = torch.device("cuda:0")  # 使用特定GPU
-device = torch.device("mps")     # Apple Silicon
-device = torch.device("cpu")     # CPU模式
+# 自动检测，也可手动
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # 指定GPU
 ```
+
+### 缓存管理
+- 特征保存在 `output_dir/proceed/cache`。
+- 要清除缓存：删除缓存目录。
 
 ## 📝 使用示例
 
-### 示例1: 电影高潮提取
+### 示例1: 命令行匹配 YouTube 视频
 ```python
-# 提取一部2小时电影的5分钟精华
-main(
-    video_path="movie_2h.mp4",
-    output_path="movie_highlights_5min.mp4",
-    max_output_duration=300,
-    speed=1.0
+matcher = YouTubeMovieMatcher(output_dir="/path/to/output")
+result = matcher.process_visual_matching_enhanced(
+    youtube_url="https://www.youtube.com/watch?v=O80j8oHUD10",
+    movie_path="/path/to/movie.mp4",
+    frame_interval=1.2,
+    similarity_threshold=0.80
 )
+print(result["output_video"])  # /path/to/output/proceed/final_output.mp4
 ```
 
-### 示例2: 体育比赛精彩时刻
-```python
-# 提取足球比赛精彩片段（更注重音频）
-main(
-    video_path="football_match.mp4",
-    output_path="football_highlights.mp4",
-    start_time=600,  # 跳过前10分钟
-    end_time=5400,   # 只分析90分钟
-    max_output_duration=180  # 输出3分钟精华
-)
-```
+### 示例2: Gradio 界面处理本地文件
+- 上传文件到界面。
+- 设置输出目录为 `/path/to/output`。
+- 输出保存在 `/path/to/output/proceed`（包括 `final_output.mp4`、`match_report.txt` 等）。
 
-### 示例3: 教学视频重点提取
-```python
-# 提取在线课程的重点内容
-main(
-    video_path="lecture.mp4",
-    output_path="lecture_keypoints.mp4",
-    speed=1.5,  # 1.5倍速播放
-    enable_scene_analysis=True,
-    scene_analysis_output="lecture_analysis.json"
-)
-```
+### 示例3: 处理竖屏解说视频
+工具自动检测并裁剪黑边，确保匹配准确。
 
 ## 📊 输出格式
 
-### 高潮视频
-- **格式**: MP4 (H.264/AAC)
-- **特点**: 自动拼接的高潮片段，保持原始画质
+### 最终视频
+- **路径**: `output_dir/proceed/final_output.mp4`
+- **格式**: MP4 (H.264/AAC)，时长与 YouTube 视频匹配片段总和一致。
 
-### 场景分析JSON
+### 匹配结果 JSON
+- **路径**: `output_dir/proceed/results/visual_match_results.json`
+- **内容示例**:
 ```json
 {
-  "total_scenes": 15,
-  "scenes": [
-    {
-      "scene_idx": 0,
-      "start_time": 0.0,
-      "end_time": 12.5,
-      "duration": 12.5,
-      "summary": "a man sitting in a car",
-      "frame_descriptions": [
-        {
-          "timestamp": 2.1,
-          "description": "a man driving a car",
-          "detailed": "a photography of a man driving a car"
-        }
-      ]
-    }
-  ]
+  "quality_info": {"confidence": 85.5},
+  "primary_segments": [{"youtube_start": 0.0, "movie_start": 60.0, "avg_similarity": 0.92}],
+  "time_jump_stats": {"total_segments": 10, "segments_with_jumps": 3}
 }
 ```
 
+### 报告文件
+- **匹配报告**: `match_report.txt` - 片段详情、转录文本。
+- **质量报告**: `quality_report.txt` - 置信度、覆盖率、改进建议。
+- **场景描述**: `scene_descriptions.json` - 帧级描述。
+- **候选片段**: `alternative_segments/alternative_segments.json` - 次优匹配。
+
 ### 日志文件
-- **位置**: `highlight_detection_YYYYMMDD_HHMMSS.log`
-- **内容**: 详细的处理过程、性能指标、错误信息
+- **路径**: `output_dir/proceed/logs/visual_matcher_YYYYMMDD_HHMMSS.log`
+- **内容**: 详细处理日志、性能指标、错误信息。
 
 ## 🔧 故障排除
 
 ### 常见问题
 
-#### 1. CUDA初始化错误
-```
-Error 804: forward compatibility was attempted on non supported HW
-```
-**解决方案**:
-```bash
-# 重启系统或重新安装NVIDIA驱动
-sudo reboot
-
-# 或强制使用CPU
-export CUDA_VISIBLE_DEVICES=""
-```
-
-#### 2. FFmpeg未找到
-```
-FileNotFoundError: [Errno 2] No such file or directory: 'ffmpeg'
-```
-**解决方案**:
-```bash
-# 安装FFmpeg并确保在PATH中
-which ffmpeg  # 验证安装
-```
-
-#### 3. 内存不足
+#### 1. CUDA 错误（如 out of memory）
 ```
 RuntimeError: CUDA out of memory
 ```
 **解决方案**:
-```python
-# 减少batch size或使用CPU
-device = torch.device("cpu")
-```
+- 减少 `frame_interval` 或使用 CPU: `export CUDA_VISIBLE_DEVICES=""`
+- 清理缓存: 删除 `cache` 目录
+- 升级 GPU 驱动
 
-#### 4. 模型下载失败
+#### 2. FFmpeg 未找到
+```
+FileNotFoundError: 'ffmpeg'
+```
+**解决方案**:
+- 安装 FFmpeg 并确保在 PATH 中: `which ffmpeg`
+
+#### 3. 模型下载失败
 ```
 ConnectionError: Failed to download model
 ```
 **解决方案**:
-```bash
-# 设置代理或使用镜像源
-export HF_ENDPOINT=https://hf-mirror.com
-```
+- 设置镜像: `export HF_ENDPOINT=https://hf-mirror.com`
+- 检查网络或使用 VPN
+
+#### 4. 匹配质量低
+- 检查阈值并重试。
+- 确保电影版本匹配解说内容。
+- 增加帧间隔以覆盖更多内容。
+
+#### 5. Gradio 界面无法启动
+- 检查端口 7866 是否占用。
+- 运行 `gradio reload` 或重启脚本。
+
+如果问题持续，请检查日志文件并在 Issues 中报告。
 
 ## 🔬 技术原理
 
-### 多模态融合架构
+### 整体架构
 ```
-输入视频 → 场景检测 → 关键帧提取 → BLIP描述生成
-    ↓
-音频提取 → RMS特征 → 能量分析 → 音频评分
-    ↓
-CLIP分析 → 语义匹配 → 视觉评分 → 加权融合 → 高潮检测
+输入: YouTube视频 + 电影原片
+↓
+视频预处理 (方向检测 + 裁剪)
+↓
+帧提取 + 特征计算 (CLIP嵌入 + BLIP描述)
+↓
+相似度匹配 (余弦相似度 + 文本匹配)
+↓
+片段分组 (核密度估计 + 时间跳跃处理)
+↓
+剪辑生成 + 合并 (FFmpeg)
+↓
+输出: 同步视频 + 报告
 ```
 
-### 智能权重系统
-- **动作场景**: 权重 +30%
-- **对话场景**: 权重 -30%
-- **风景场景**: 权重 -10%
-- **无效场景**: 权重 -90%
-
-### 自适应阈值算法
-使用70%分位数作为动态阈值，确保在不同类型视频中都能提取到合适数量的高潮片段。
+### 关键算法
+- **相似度计算**: CLIP 特征的 cosine_similarity + BLIP 描述的语义权重。
+- **片段优化**: gaussian_kde 平滑匹配分布；interp1d 插值时间序列。
+- **质量评估**: 平均相似度 * 覆盖率 * (1 - 跳跃惩罚)。
+- **缓存机制**: MD5 哈希确保文件唯一性，支持断点续传。
 
 ## 🤝 贡献指南
 
 ### 开发环境设置
-1. Fork本项目
-2. 创建功能分支: `git checkout -b feature-name`
-3. 安装开发依赖: `pip install -r requirements-dev.txt`
+1. Fork 项目。
+2. 创建分支: `git checkout -b feature/new-feature`
+3. 安装开发依赖: `pip install -r requirements-dev.txt` (添加 pytest 等)。
 4. 运行测试: `python -m pytest tests/`
 
 ### 代码规范
-- 遵循PEP 8代码风格
-- 添加类型注解
-- 编写详细的docstring
-- 确保测试覆盖率 > 80%
+- 遵循 PEP 8。
+- 添加类型注解 (typing)。
+- 编写 docstring。
+- 确保测试覆盖率 >80%。
 
 ### 提交流程
-1. 确保所有测试通过
-2. 提交代码: `git commit -m "feat: add new feature"`
-3. 推送分支: `git push origin feature-name`
-4. 创建Pull Request
+1. 测试通过。
+2. 提交: `git commit -m "feat: add new feature"`
+3. 推送: `git push origin feature/new-feature`
+4. 创建 Pull Request。
+
+欢迎贡献新功能，如添加更多模型支持或优化算法。
 
 ## 📄 许可证
 
-本项目采用MIT许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
 ## 致谢
 
-- [Salesforce BLIP](https://github.com/salesforce/BLIP) - 视觉语言理解
-- [OpenAI CLIP](https://github.com/openai/CLIP) - 视觉语言表示
-- [FFmpeg](https://ffmpeg.org/) - 多媒体处理
-- [Librosa](https://librosa.org/) - 音频分析
+- [OpenAI CLIP](https://github.com/openai/CLIP) - 视觉语义匹配。
+- [Salesforce BLIP](https://github.com/salesforce/BLIP) - 图像描述生成。
+- [OpenAI Whisper](https://github.com/openai/whisper) - 音频转录。
+- [FFmpeg](https://ffmpeg.org/) - 视频处理。
+- [Gradio](https://gradio.app/) - Web 界面。
+- [SciPy](https://scipy.org/) - 科学计算。
 
 ## 联系方式
 
-- **作者**: 黄彦喆
-- **问题反馈**: 请使用Github Issues
-- **功能建议**: 欢迎提交Pull Request
+- **作者**: 52hertzjingluo
+- **问题反馈**: 请使用 GitHub Issues。
+- **功能建议**: 欢迎提交 Pull Request。
 
 ---
 
-⭐ 如果这个项目对您有帮助，请给个Star支持！
+⭐ 如果这个项目对您有帮助，请给个 Star 支持！
